@@ -18,6 +18,8 @@ namespace Rest.Service
         public string Comprobante { get; set; }
         public string DescMovimiento { get; set; }
         public string Sucursal { get; set; }
-
+        public string Secretaria { get; set; }
+        public string Coeficiente {get;set;}
+        public string Programa { get; set; }
     }
 }

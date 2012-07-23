@@ -4,6 +4,7 @@ using Simple.Data;
 using System.Collections.Generic;
 using Retlang.Fibers;
 using Retlang.Channels;
+using System.IO;
 namespace Rest.Service
 {
     public class HomeModule:BaseModule
@@ -23,7 +24,10 @@ namespace Rest.Service
 
             Get["/importador"] = x =>
             {
-                return "Estadisticas proximamente";
+                return string.Format("Directiorio de operaciones:{0}",
+                    string.Format(@"{0}{1}\", Path.GetDirectoryName(typeof(Bootstrapper).Assembly.CodeBase)
+                    .Replace(@"file:\", string.Empty)
+                    .Replace("bin", string.Empty),"inbox"));
             };
            
         }
@@ -41,7 +45,7 @@ namespace Rest.Service
             Punto persona = DB.Personas.FindByNroDocumentoAndCodEmpresa(x.id, x.empresa);
             var cuenta = DB.Clientes.FindByNroDocAndCodEmpresa(x.id, x.empresa);
 
-            var numero_cuenta = cuenta == null ? persona.Cuenta : cuenta.Cuenta;
+            var numero_cuenta = cuenta == null ? persona.Cuenta : cuenta.NroCuenta;
 
             var doc = GetCorporativo(persona.Cuenta, x.empresa);
             var response = new List<Movimiento>();
