@@ -1,10 +1,11 @@
-﻿
+﻿using System.Web;
 using Nancy;
 using System.Collections.Generic;
 using System;
 using TinyIoC;
 using Nancy.Bootstrapper;
 using System.IO;
+using System.Configuration;
 namespace Rest.Service
 {
      public class Bootstrapper : DefaultNancyBootstrapper
@@ -17,6 +18,7 @@ namespace Rest.Service
 
         protected override void  ApplicationStartup(TinyIoCContainer container, IPipelines pipelines)
         {
+            StaticConfiguration.DisableErrorTraces=true;
             _importador = new Importador();
 
             base.ApplicationStartup(container, pipelines);
@@ -36,10 +38,10 @@ namespace Rest.Service
         {
             if (!ValidateCache(context))
             {
-                var path = "inbox";
-                var monitorPath = string.Format(@"{0}{¨1}\", Path.GetDirectoryName(typeof(Bootstrapper).Assembly.CodeBase)
+
+                var monitorPath = string.Format(@"{0}{1}\", Path.GetDirectoryName(typeof(Bootstrapper).Assembly.CodeBase)
                     .Replace(@"file:\", string.Empty)
-                    .Replace("bin", string.Empty),path);
+                    .Replace("bin", string.Empty), "inbox");
                 _importador.ConvertFilesInCommands(monitorPath);
             }
             return null;
