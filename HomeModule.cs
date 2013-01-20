@@ -4,6 +4,10 @@ using Simple.Data;
 using System.Collections.Generic;
 using Retlang.Fibers;
 using Retlang.Channels;
+using System.IO;
+using System.Linq;
+using System;
+
 namespace Rest.Service
 {
     public class HomeModule:BaseModule
@@ -11,6 +15,16 @@ namespace Rest.Service
         public HomeModule(IDBFactory dbFactory):base(dbFactory ,"/api")
         {
             
+            Get["/puntos/{origen}/{empresa}/{id}/{anio}/{extension}"] = x =>
+            {
+                return GetPuntos(x);
+            };
+
+            Get["/movimientos/{origen}/{empresa}/{id}/{anio}/{extension}"] = x =>
+            {
+                return GetMovimientos(x);
+            };
+
             Get["/puntos/{origen}/{empresa}/{id}/{extension}"] = x =>
             {
                 return GetPuntos(x);
@@ -21,9 +35,13 @@ namespace Rest.Service
                 return GetMovimientos(x);
             };
 
+
             Get["/importador"] = x =>
             {
-                return "Estadisticas proximamente";
+                return string.Format("Directiorio de operaciones:{0}",
+                    string.Format(@"{0}{1}\", Path.GetDirectoryName(typeof(Bootstrapper).Assembly.CodeBase)
+                    .Replace(@"file:\", string.Empty)
+                    .Replace("bin", string.Empty),"inbox"));
             };
            
         }
@@ -41,14 +59,17 @@ namespace Rest.Service
             Punto persona = DB.Personas.FindByNroDocumentoAndCodEmpresa(x.id, x.empresa);
             var cuenta = DB.Clientes.FindByNroDocAndCodEmpresa(x.id, x.empresa);
 
-            var numero_cuenta = cuenta == null ? persona.Cuenta : cuenta.Cuenta;
+            var numero_cuenta = cuenta == null ? persona.Cuenta : cuenta.NroCuenta;
 
+            var anio = x.anio 
+                ?  int.Parse(x.anio) : 0 ;
+                       
             var doc = GetCorporativo(persona.Cuenta, x.empresa);
             var response = new List<Movimiento>();
-            if (x.origen == "corporativo")
-               response= MovimientosCorporativos(persona.CodEmpresa,persona.Cuenta,doc);
+            if (((string)x.origen).ToLowerInvariant() == "corporativo")
+               response= MovimientosCorporativos(persona.CodEmpresa,persona.Cuenta,doc,anio);
             else
-                response = MovimientosParticulares(persona.CodEmpresa, persona.Cuenta, doc);
+                response = MovimientosParticulares(persona.CodEmpresa, persona.Cuenta, doc,anio);
 
             if (x.extension == "json")
                 return Response.AsJson(response);
@@ -56,19 +77,18 @@ namespace Rest.Service
                 return Response.AsXml(response);
         }
 
-        private IEnumerable<Movimiento> MovimientosParticulares(int empresa,int cuenta,string doc)
+        private IEnumerable<Movimiento> MovimientosParticulares(int empresa,int cuenta,string doc,int anio=0)
         {
-            
-             return DB.Movimientos_Particulares(empresa,cuenta,doc)                            
-                .ToList<Movimiento>();           
+            IList<Movimiento> response= DB.Movimientos_Particulares(empresa,cuenta,doc);
+            return anio == 0 ? response.ToList<Movimiento>() : response.Where(x => x.Fecha_Compra.Year == anio).ToList<Movimiento>();
             
         }
 
-        private IEnumerable<Movimiento> MovimientosCorporativos(int empresa, int cuenta, string doc)
+        private IEnumerable<Movimiento> MovimientosCorporativos(int empresa, int cuenta, string doc,int anio=0)
         {
 
-            return DB.Movimientos_Corporativos(empresa, cuenta, doc)
-               .ToList<Movimiento>();        
+            List<Movimiento> response = DB.Movimientos_Corporativos(empresa, cuenta, doc);
+            return anio == 0 ? response.ToList<Movimiento>() : response.Where(x => x.Fecha_Compra.Year == anio).ToList<Movimiento>();
         }
 
         private Response GetPuntos(dynamic x)
@@ -76,17 +96,20 @@ namespace Rest.Service
             if (!DB.Personas.ExistsByNroDocumentoAndCodEmpresa(x.id, x.empresa))
                 return HttpStatusCode.NotFound;
 
+            var anio = x.anio
+               ? int.Parse(x.anio) : 0;
+
             Punto response = DB.Personas.FindByNroDocumentoAndCodEmpresa(x.id, x.empresa);
 
-            return GetPuntosForCustomer(x, response);            
+            return GetPuntosForCustomer(x, response,anio);            
         }
 
-        private Response GetPuntosForCustomer(dynamic x, Punto response)
+        private Response GetPuntosForCustomer(dynamic x, Punto response,int anio=0)
         {
-            if (x.origen == "corporativo")
-                PuntosCorporativos(response);
+            if (((string)x.origen).ToLowerInvariant() == "corporativo")
+                PuntosCorporativos(response,anio);
             else
-                PuntosParticulares(response);
+                PuntosParticulares(response,anio);
 
            if (x.extension == "json")
                 return Response.AsJson(response);
@@ -94,21 +117,37 @@ namespace Rest.Service
                 return Response.AsXml(response);
         }
 
-        private void PuntosCorporativos(Punto response)
+        private void PuntosCorporativos(Punto response,int anio)
         {
             var doc = GetCorporativo(response.Cuenta, response.CodEmpresa);
+            dynamic sumaPuntos, canjePuntos;
+            if (anio == 0)
+            {
+                sumaPuntos = DB.Cuentas_Corrientes.FindAllByCuentaAndCodEmpresa(response.Cuenta, response.CodEmpresa)
+                   .Select(DB.Cuentas_Corrientes.MontoCompra.Sum().As("Monto"), DB.Cuentas_Corrientes.CantidadPuntos.Sum().As("Puntos"))
+                   .Where(DB.Cuentas_Corrientes.Movimiento == 0 || DB.Cuentas_Corrientes.Movimiento == 2)
+                   .Where(DB.Cuentas_Corrientes.NroDoc == doc).ToList();
 
-            var SumaPuntos = DB.Cuentas_Corrientes.FindAllByCuentaAndCodEmpresa(response.Cuenta, response.CodEmpresa)
-                .Select(DB.Cuentas_Corrientes.MontoCompra.Sum().As("Monto"), DB.Cuentas_Corrientes.CantidadPuntos.Sum().As("Puntos"))
-                .Where(DB.Cuentas_Corrientes.Movimiento == 0 || DB.Cuentas_Corrientes.Movimiento == 2)
-                .Where(DB.Cuentas_Corrientes.NroDoc == doc).ToList();
+                canjePuntos = DB.Cuentas_Corrientes.FindAllByCuentaAndCodEmpresa(response.Cuenta, response.CodEmpresa)
+                    .Select(DB.Cuentas_Corrientes.MontoCompra.Sum().As("Monto"), DB.Cuentas_Corrientes.CantidadPuntos.Sum().As("Puntos"))
+                    .Where(DB.Cuentas_Corrientes.Movimiento == 1 || DB.Cuentas_Corrientes.Movimiento == 4)
+                    .Where(DB.Cuentas_Corrientes.NroDoc == doc).ToList();
+            }
+            else
+            {
+                sumaPuntos = DB.Cuentas_Corrientes.FindAllByCuentaAndCodEmpresa(response.Cuenta, response.CodEmpresa)
+                   .Select(DB.Cuentas_Corrientes.MontoCompra.Sum().As("Monto"), DB.Cuentas_Corrientes.CantidadPuntos.Sum().As("Puntos"))
+                   .Where(DB.Cuentas_Corrientes.Movimiento == 0 || DB.Cuentas_Corrientes.Movimiento == 2)
+                   .Where(DB.Cuentas_Corrientes.fecha_Compra >= @"01/01/" + anio && DB.Cuentas_Corrientes.fecha_Compra <= @"31/12/" + anio)
+                   .Where(DB.Cuentas_Corrientes.NroDoc == doc).ToList();
 
-            var CanjePuntos = DB.Cuentas_Corrientes.FindAllByCuentaAndCodEmpresa(response.Cuenta, response.CodEmpresa)
-                .Select(DB.Cuentas_Corrientes.MontoCompra.Sum().As("Monto"), DB.Cuentas_Corrientes.CantidadPuntos.Sum().As("Puntos"))
-                .Where(DB.Cuentas_Corrientes.Movimiento == 1 || DB.Cuentas_Corrientes.Movimiento == 4)
-                .Where(DB.Cuentas_Corrientes.NroDoc == doc).ToList();
-
-            Sumador(response, SumaPuntos, CanjePuntos);
+                canjePuntos = DB.Cuentas_Corrientes.FindAllByCuentaAndCodEmpresa(response.Cuenta, response.CodEmpresa)
+                    .Select(DB.Cuentas_Corrientes.MontoCompra.Sum().As("Monto"), DB.Cuentas_Corrientes.CantidadPuntos.Sum().As("Puntos"))
+                    .Where(DB.Cuentas_Corrientes.fecha_Compra >= @"01/01/" + anio && DB.Cuentas_Corrientes.fecha_Compra <= @"31/12/" + anio)
+                    .Where(DB.Cuentas_Corrientes.Movimiento == 1 || DB.Cuentas_Corrientes.Movimiento == 4)
+                    .Where(DB.Cuentas_Corrientes.NroDoc == doc).ToList() ;                
+            }
+            Sumador(response, sumaPuntos, canjePuntos);
         }
 
         private static void Sumador(Punto response, dynamic SumaPuntos, dynamic CanjePuntos)
@@ -123,21 +162,38 @@ namespace Rest.Service
             response.MontoCompra = montoSuma - montoCanje;
         }
 
-        private void PuntosParticulares(Punto response)
+        private void PuntosParticulares(Punto response,int anio)
         {
             var doc = GetCorporativo(response.Cuenta, response.CodEmpresa);
+            dynamic sumaPuntos, canjePuntos;
 
-            var SumaPuntos = DB.Cuentas_Corrientes.FindAllByCuentaAndCodEmpresa(response.Cuenta, response.CodEmpresa)
-                .Select(DB.Cuentas_Corrientes.MontoCompra.Sum().As("Monto"), DB.Cuentas_Corrientes.CantidadPuntos.Sum().As("Puntos"))
-                .Where(DB.Cuentas_Corrientes.Movimiento == 0 || DB.Cuentas_Corrientes.Movimiento == 2)
-                .Where(DB.Cuentas_Corrientes.NroDoc !=doc).ToList();
+            if (anio == 0)
+            {
+                sumaPuntos = DB.Cuentas_Corrientes.FindAllByCuentaAndCodEmpresa(response.Cuenta, response.CodEmpresa)
+                    .Select(DB.Cuentas_Corrientes.MontoCompra.Sum().As("Monto"), DB.Cuentas_Corrientes.CantidadPuntos.Sum().As("Puntos"))
+                    .Where(DB.Cuentas_Corrientes.Movimiento == 0 || DB.Cuentas_Corrientes.Movimiento == 2)
+                    .Where(DB.Cuentas_Corrientes.NroDoc != doc).ToList();
 
-            var CanjePuntos = DB.Cuentas_Corrientes.FindAllByCuentaAndCodEmpresa(response.Cuenta, response.CodEmpresa)
-                .Select(DB.Cuentas_Corrientes.MontoCompra.Sum().As("Monto"), DB.Cuentas_Corrientes.CantidadPuntos.Sum().As("Puntos"))
-                .Where(DB.Cuentas_Corrientes.Movimiento == 1 || DB.Cuentas_Corrientes.Movimiento == 4)
-                .Where(DB.Cuentas_Corrientes.NroDoc != doc).ToList();
+                canjePuntos = DB.Cuentas_Corrientes.FindAllByCuentaAndCodEmpresa(response.Cuenta, response.CodEmpresa)
+                    .Select(DB.Cuentas_Corrientes.MontoCompra.Sum().As("Monto"), DB.Cuentas_Corrientes.CantidadPuntos.Sum().As("Puntos"))
+                    .Where(DB.Cuentas_Corrientes.Movimiento == 1 || DB.Cuentas_Corrientes.Movimiento == 4)
+                    .Where(DB.Cuentas_Corrientes.NroDoc != doc).ToList();
+            }
+            else 
+            {
+                sumaPuntos = DB.Cuentas_Corrientes.FindAllByCuentaAndCodEmpresa(response.Cuenta, response.CodEmpresa)
+                    .Select(DB.Cuentas_Corrientes.MontoCompra.Sum().As("Monto"), DB.Cuentas_Corrientes.CantidadPuntos.Sum().As("Puntos"))
+                    .Where(DB.Cuentas_Corrientes.Movimiento == 0 || DB.Cuentas_Corrientes.Movimiento == 2)
+                    .Where(DB.Cuentas_Corrientes.fecha_Compra >= @"01/01/" + anio && DB.Cuentas_Corrientes.fecha_Compra <= @"31/12/" + anio)
+                    .Where(DB.Cuentas_Corrientes.NroDoc != doc).ToList();
 
-            Sumador(response, SumaPuntos, CanjePuntos);
+                canjePuntos = DB.Cuentas_Corrientes.FindAllByCuentaAndCodEmpresa(response.Cuenta, response.CodEmpresa)
+                    .Select(DB.Cuentas_Corrientes.MontoCompra.Sum().As("Monto"), DB.Cuentas_Corrientes.CantidadPuntos.Sum().As("Puntos"))
+                    .Where(DB.Cuentas_Corrientes.fecha_Compra >= @"01/01/" + anio && DB.Cuentas_Corrientes.fecha_Compra <= @"31/12/" + anio)
+                    .Where(DB.Cuentas_Corrientes.Movimiento == 1 || DB.Cuentas_Corrientes.Movimiento == 4)
+                    .Where(DB.Cuentas_Corrientes.NroDoc != doc).ToList();
+            }
+            Sumador(response, sumaPuntos, canjePuntos);
         }
 
         private string GetCorporativo(int cuenta, int empresa)

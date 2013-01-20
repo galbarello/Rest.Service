@@ -68,10 +68,6 @@
     <EmbeddedResource Include="favicon.ico">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </EmbeddedResource>
-    <Content Include="inbox\CAMBIO.txt" />
-    <Content Include="inbox\CAMBIO_04072011.txt" />
-    <Content Include="inbox\OLA.txt" />
-    <Content Include="inbox\OLA_04072011.txt" />
     <Content Include="Web.config">
       <SubType>Designer</SubType>
     </Content>
@@ -93,6 +89,7 @@
     <Compile Include="Punto.cs" />
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="inbox\" />
     <Folder Include="old\" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
