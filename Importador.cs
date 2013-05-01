@@ -1,12 +1,12 @@
-﻿using Retlang.Fibers;
-using Retlang.Channels;
-using Castle.ActiveRecord.Framework.Config;
+﻿using System;
+using System.Configuration;
+using System.IO;
 using System.Reflection;
 using Castle.ActiveRecord;
-using System;
-using System.IO;
-using System.Configuration;
+using Castle.ActiveRecord.Framework.Config;
 using FileProccesor.Services;
+using Retlang.Channels;
+using Retlang.Fibers;
 
 namespace Rest.Service
 {

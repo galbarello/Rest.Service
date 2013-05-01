@@ -1,6 +1,5 @@
-﻿using System;
+﻿using System.Configuration;
 using Simple.Data;
-using System.Configuration;
 
 namespace Rest.Service
 {

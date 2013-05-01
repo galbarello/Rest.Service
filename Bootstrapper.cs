@@ -1,11 +1,10 @@
-﻿using System.Web;
-using Nancy;
+﻿using System;
 using System.Collections.Generic;
-using System;
-using TinyIoC;
-using Nancy.Bootstrapper;
 using System.IO;
-using System.Configuration;
+using Nancy;
+using Nancy.Bootstrapper;
+using TinyIoC;
+
 namespace Rest.Service
 {
      public class Bootstrapper : DefaultNancyBootstrapper

@@ -1,12 +1,7 @@
-﻿using Nancy;
-using System.Dynamic;
-using Simple.Data;
-using System.Collections.Generic;
-using Retlang.Fibers;
-using Retlang.Channels;
+﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System;
+using Nancy;
 
 namespace Rest.Service
 {
@@ -138,12 +133,12 @@ namespace Rest.Service
                 sumaPuntos = DB.Cuentas_Corrientes.FindAllByCuentaAndCodEmpresa(response.Cuenta, response.CodEmpresa)
                    .Select(DB.Cuentas_Corrientes.MontoCompra.Sum().As("Monto"), DB.Cuentas_Corrientes.CantidadPuntos.Sum().As("Puntos"))
                    .Where(DB.Cuentas_Corrientes.Movimiento == 0 || DB.Cuentas_Corrientes.Movimiento == 2)
-                   .Where(DB.Cuentas_Corrientes.fecha_Compra >= @"01/01/" + anio && DB.Cuentas_Corrientes.fecha_Compra <= @"31/12/" + anio)
+                   .Where(DB.Cuentas_Corrientes.fecha_Compra >= @"01/11/" + (anio -1) && DB.Cuentas_Corrientes.fecha_Compra <= @"31/10/" + anio)
                    .Where(DB.Cuentas_Corrientes.NroDoc == doc).ToList();
 
                 canjePuntos = DB.Cuentas_Corrientes.FindAllByCuentaAndCodEmpresa(response.Cuenta, response.CodEmpresa)
                     .Select(DB.Cuentas_Corrientes.MontoCompra.Sum().As("Monto"), DB.Cuentas_Corrientes.CantidadPuntos.Sum().As("Puntos"))
-                    .Where(DB.Cuentas_Corrientes.fecha_Compra >= @"01/01/" + anio && DB.Cuentas_Corrientes.fecha_Compra <= @"31/12/" + anio)
+                    .Where(DB.Cuentas_Corrientes.fecha_Compra >= @"01/11/" + (anio-1) && DB.Cuentas_Corrientes.fecha_Compra <= @"31/10/" + anio)
                     .Where(DB.Cuentas_Corrientes.Movimiento == 1 || DB.Cuentas_Corrientes.Movimiento == 4)
                     .Where(DB.Cuentas_Corrientes.NroDoc == doc).ToList() ;                
             }
@@ -184,12 +179,12 @@ namespace Rest.Service
                 sumaPuntos = DB.Cuentas_Corrientes.FindAllByCuentaAndCodEmpresa(response.Cuenta, response.CodEmpresa)
                     .Select(DB.Cuentas_Corrientes.MontoCompra.Sum().As("Monto"), DB.Cuentas_Corrientes.CantidadPuntos.Sum().As("Puntos"))
                     .Where(DB.Cuentas_Corrientes.Movimiento == 0 || DB.Cuentas_Corrientes.Movimiento == 2)
-                    .Where(DB.Cuentas_Corrientes.fecha_Compra >= @"01/01/" + anio && DB.Cuentas_Corrientes.fecha_Compra <= @"31/12/" + anio)
+                    .Where(DB.Cuentas_Corrientes.fecha_Compra >= @"01/11/" + (anio-1) && DB.Cuentas_Corrientes.fecha_Compra <= @"31/10/" + anio)
                     .Where(DB.Cuentas_Corrientes.NroDoc != doc).ToList();
 
                 canjePuntos = DB.Cuentas_Corrientes.FindAllByCuentaAndCodEmpresa(response.Cuenta, response.CodEmpresa)
                     .Select(DB.Cuentas_Corrientes.MontoCompra.Sum().As("Monto"), DB.Cuentas_Corrientes.CantidadPuntos.Sum().As("Puntos"))
-                    .Where(DB.Cuentas_Corrientes.fecha_Compra >= @"01/01/" + anio && DB.Cuentas_Corrientes.fecha_Compra <= @"31/12/" + anio)
+                    .Where(DB.Cuentas_Corrientes.fecha_Compra >= @"01/11/" + (anio-2) && DB.Cuentas_Corrientes.fecha_Compra <= @"31/10/" + anio)
                     .Where(DB.Cuentas_Corrientes.Movimiento == 1 || DB.Cuentas_Corrientes.Movimiento == 4)
                     .Where(DB.Cuentas_Corrientes.NroDoc != doc).ToList();
             }
