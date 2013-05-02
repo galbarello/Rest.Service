@@ -2,6 +2,7 @@
 using System.IO;
 using System.Linq;
 using Nancy;
+using System;
 
 namespace Rest.Service
 {
@@ -75,7 +76,10 @@ namespace Rest.Service
         private IEnumerable<Movimiento> MovimientosParticulares(int empresa,int cuenta,string doc,int anio=0)
         {
             IList<Movimiento> response= DB.Movimientos_Particulares(empresa,cuenta,doc);
-            return anio == 0 ? response.ToList<Movimiento>() : response.Where(x => x.Fecha_Compra.Year == anio).ToList<Movimiento>();
+            return anio == 0 ? response.ToList<Movimiento>() : 
+                response.Where(x => x.Fecha_Compra >= DateTime.Parse(string.Format("01/12/{0}" , anio-1)) 
+                && x.Fecha_Compra <= DateTime.Parse(string.Format("30/11/{0}" , anio))).ToList<Movimiento>();
+            
             
         }
 
@@ -83,7 +87,9 @@ namespace Rest.Service
         {
 
             List<Movimiento> response = DB.Movimientos_Corporativos(empresa, cuenta, doc);
-            return anio == 0 ? response.ToList<Movimiento>() : response.Where(x => x.Fecha_Compra.Year == anio).ToList<Movimiento>();
+            return anio == 0 ? response.ToList<Movimiento>() :
+                response.Where(x => x.Fecha_Compra >= DateTime.Parse(string.Format("01/12/{0}", anio - 1))
+                && x.Fecha_Compra <= DateTime.Parse(string.Format("30/11/{0}", anio))).ToList<Movimiento>();
         }
 
         private Response GetPuntos(dynamic x)
@@ -133,12 +139,12 @@ namespace Rest.Service
                 sumaPuntos = DB.Cuentas_Corrientes.FindAllByCuentaAndCodEmpresa(response.Cuenta, response.CodEmpresa)
                    .Select(DB.Cuentas_Corrientes.MontoCompra.Sum().As("Monto"), DB.Cuentas_Corrientes.CantidadPuntos.Sum().As("Puntos"))
                    .Where(DB.Cuentas_Corrientes.Movimiento == 0 || DB.Cuentas_Corrientes.Movimiento == 2)
-                   .Where(DB.Cuentas_Corrientes.fecha_Compra >= @"01/11/" + (anio -1) && DB.Cuentas_Corrientes.fecha_Compra <= @"31/10/" + anio)
+                   .Where(DB.Cuentas_Corrientes.fecha_Compra >= @"01/12/" + (anio -1) && DB.Cuentas_Corrientes.fecha_Compra <= @"30/11/" + anio)
                    .Where(DB.Cuentas_Corrientes.NroDoc == doc).ToList();
 
                 canjePuntos = DB.Cuentas_Corrientes.FindAllByCuentaAndCodEmpresa(response.Cuenta, response.CodEmpresa)
                     .Select(DB.Cuentas_Corrientes.MontoCompra.Sum().As("Monto"), DB.Cuentas_Corrientes.CantidadPuntos.Sum().As("Puntos"))
-                    .Where(DB.Cuentas_Corrientes.fecha_Compra >= @"01/11/" + (anio-1) && DB.Cuentas_Corrientes.fecha_Compra <= @"31/10/" + anio)
+                    .Where(DB.Cuentas_Corrientes.fecha_Compra >= @"01/12/" + (anio-1) && DB.Cuentas_Corrientes.fecha_Compra <= @"30/11/" + anio)
                     .Where(DB.Cuentas_Corrientes.Movimiento == 1 || DB.Cuentas_Corrientes.Movimiento == 4)
                     .Where(DB.Cuentas_Corrientes.NroDoc == doc).ToList() ;                
             }
@@ -179,12 +185,12 @@ namespace Rest.Service
                 sumaPuntos = DB.Cuentas_Corrientes.FindAllByCuentaAndCodEmpresa(response.Cuenta, response.CodEmpresa)
                     .Select(DB.Cuentas_Corrientes.MontoCompra.Sum().As("Monto"), DB.Cuentas_Corrientes.CantidadPuntos.Sum().As("Puntos"))
                     .Where(DB.Cuentas_Corrientes.Movimiento == 0 || DB.Cuentas_Corrientes.Movimiento == 2)
-                    .Where(DB.Cuentas_Corrientes.fecha_Compra >= @"01/11/" + (anio-1) && DB.Cuentas_Corrientes.fecha_Compra <= @"31/10/" + anio)
+                    .Where(DB.Cuentas_Corrientes.fecha_Compra >= @"01/12/" + (anio-1) && DB.Cuentas_Corrientes.fecha_Compra <= @"30/11/" + anio)
                     .Where(DB.Cuentas_Corrientes.NroDoc != doc).ToList();
 
                 canjePuntos = DB.Cuentas_Corrientes.FindAllByCuentaAndCodEmpresa(response.Cuenta, response.CodEmpresa)
                     .Select(DB.Cuentas_Corrientes.MontoCompra.Sum().As("Monto"), DB.Cuentas_Corrientes.CantidadPuntos.Sum().As("Puntos"))
-                    .Where(DB.Cuentas_Corrientes.fecha_Compra >= @"01/11/" + (anio-2) && DB.Cuentas_Corrientes.fecha_Compra <= @"31/10/" + anio)
+                    .Where(DB.Cuentas_Corrientes.fecha_Compra >= @"01/12/" + (anio-2) && DB.Cuentas_Corrientes.fecha_Compra <= @"30/11/" + anio)
                     .Where(DB.Cuentas_Corrientes.Movimiento == 1 || DB.Cuentas_Corrientes.Movimiento == 4)
                     .Where(DB.Cuentas_Corrientes.NroDoc != doc).ToList();
             }
