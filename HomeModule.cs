@@ -10,6 +10,16 @@ namespace Rest.Service
     {
         public HomeModule(IDBFactory dbFactory):base(dbFactory ,"/api")
         {
+
+            Get["/puntos/{empresa}/{id}/{extension}"] = x =>
+            {
+                return AccountHelper.GetPuntos(x,dbFactory.DB());
+            };
+
+            Get["/movimientos/{empresa}/{id}/{extension}"] = x =>
+            {
+                return AccountHelper.GetMovimientos(x,dbFactory.DB());
+            };
             
             Get["/puntos/{origen}/{empresa}/{id}/{anio}/{extension}"] = x =>
             {

@@ -79,6 +79,7 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AccountHelper.cs" />
     <Compile Include="BaseModule.cs" />
     <Compile Include="Bootstrapper.cs" />
     <Compile Include="DBFactory.cs" />
