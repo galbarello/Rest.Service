@@ -13,12 +13,22 @@ namespace Rest.Service
 
             Get["/puntos/{empresa}/{id}/{extension}"] = x =>
             {
-                return AccountHelper.GetPuntos(x,dbFactory.DB());
+                Punto response= AccountHelper.GetPuntos(x,dbFactory.DB());
+
+                if (x.extension == "json")
+                    return Response.AsJson(response);
+                else
+                    return Response.AsXml(response);
             };
 
             Get["/movimientos/{empresa}/{id}/{extension}"] = x =>
             {
-                return AccountHelper.GetMovimientos(x,dbFactory.DB());
+                IList<Movimiento> response = AccountHelper.GetMovimientos(x, dbFactory.DB());
+
+                if (x.extension == "json")
+                    return Response.AsJson(response);
+                else
+                    return Response.AsXml(response);
             };
             
             Get["/puntos/{origen}/{empresa}/{id}/{anio}/{extension}"] = x =>
